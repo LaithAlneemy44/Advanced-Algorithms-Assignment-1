@@ -84,7 +84,7 @@ if(SWISS_BUILD_TESTS)
     enable_testing()
 
     add_executable(swiss_tests
-        tests/test_swiss_table.cpp)
+        tests/test_hash.cpp)
     target_link_libraries(swiss_tests PRIVATE
         swiss::swiss_table swiss_warnings GTest::gtest_main)
 
@@ -111,7 +111,7 @@ endif()
 
 if(SWISS_BUILD_BENCHMARKS)
     add_executable(swiss_bench
-        bench/bench_swiss_table.cpp)
+        bench/bench_hash.cpp)
     target_link_libraries(swiss_bench PRIVATE
         swiss::swiss_table swiss_warnings benchmark::benchmark_main)
 endif()

@@ -70,6 +70,9 @@ if(SWISS_BUILD_BENCHMARKS)
     set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
     set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
     set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+    # Benchmark builds itself with -Werror. Newer GCC adds warnings its source
+    # does not yet silence (GCC 16: -Wswitch in sysinfo.cc), which breaks the build.
+    set(BENCHMARK_ENABLE_WERROR OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(benchmark)
 endif()
 

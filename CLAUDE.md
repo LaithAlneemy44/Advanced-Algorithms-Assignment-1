@@ -62,7 +62,7 @@ AI use is permitted and expected, but the report must disclose it honestly and t
 
 - **Explain, don't just produce.** For any non-trivial code, state the invariant it maintains and why each tricky step is needed. Keep this brief in code comments and fuller in chat.
 - **Flag uncertainty.** Separate what is known to be correct, what is assumed, and what is a guess. Say so when a benchmark might not measure what it claims to.
-- **Maintain `AI_USE_LOG.md`.** Append an entry whenever Claude:
+- **Maintain `ai-failures.md`.** Append an entry whenever Claude or any other AI tool:
   - produces a bug, a wrong explanation, a hallucinated API or a flawed benchmark that later gets caught
   - is corrected by the author
   - suggests something the author rejects, with the reason

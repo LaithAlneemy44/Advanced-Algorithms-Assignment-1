@@ -74,7 +74,7 @@ AI use is permitted and expected, but the report must disclose it honestly and t
 Reference guidance, not settled design. Verify against the Abseil design notes and the CppCon 2017 talk by Matt Kulukundis before relying on specifics.
 
 - **Layout:** a control-byte array alongside a slot array. Each control byte is empty, deleted, a sentinel, or holds the 7-bit H2 fragment of a full slot's hash.
-- **Hash split:** H1 selects the starting group, H2 is stored in the control byte for fast filtering.
+- **Hash split:** H1 selects the starting slot, not a group: the hash masked to the capacity, with 16 control bytes read from there. H2 is stored in the control byte for fast filtering. **Decided:** top-7 split, H2 = bits 57 to 63 and H1 = the whole hash. Current Abseil, since release 20250814, and hashbrown both use it. Abseil up to release 20250512 used H2 = low 7 bits and H1 = hash >> 7, checked in the source. Defined once in `include/swiss/hash.hpp`.
 - **Group probing:** scan a group of 16 control bytes at once with SSE2, or 8 with a portable SWAR fallback. Compare all bytes against H2 in parallel, then check keys only for matching positions.
 - **Probe sequence:** triangular probing over groups, which visits every group when capacity is a power of two.
 - **Deletion:** use a tombstone unless the group was never full, in which case the slot can go straight back to empty. Getting this condition wrong breaks lookups for keys further along the probe sequence. This is a strong candidate for the "what breaks" video segment.

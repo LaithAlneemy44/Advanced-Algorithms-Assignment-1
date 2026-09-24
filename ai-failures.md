@@ -24,3 +24,13 @@ Record of mistakes by any AI tool, corrections and rejected suggestions. Appende
 - **What went wrong:** the plan said `CLAUDE.md` had three references to `AI_USE_LOG.md`. It had one. The count was stated without searching the file.
 - **How it was found:** a search of `CLAUDE.md` during implementation.
 - **What was done:** updated the single reference. No consequence beyond the wrong statement.
+
+## 2026-09-24: Out-of-date description of Abseil's H1/H2 split
+
+- **Asked:** how to choose a hash function, and which hash bits the table should use for H2.
+- **What went wrong:** two errors, both presented as current fact.
+  1. Claude said Abseil takes H2 from the low 7 bits and H1 from `hash >> 7`. That was true up to release 20250512. Since release 20250814, Abseil uses H1 = the whole hash and H2 = the top 7 bits, the same split as hashbrown. The author chose "Abseil's split" partly because Claude said it matched the Abseil design notes, and that reason rested on the out-of-date fact.
+  2. Claude said H1 is masked to the number of groups. In old Abseil, current Abseil and hashbrown, H1 is masked to the number of slots. Probing starts at any slot and reads 16 control bytes from there.
+- **How it was found:** the verification step written into the plan. It read `raw_hash_set.h` at Abseil master and at eight release tags, plus hashbrown's `src/control/tag.rs` and `src/raw.rs`. The Abseil commit that made the change explains it: "change H2 to use the most significant 7 bits - saving 1 cycle in H1. Using Mix instead of WeakMix means that the entire 64 bits of hash are expected to have good entropy."
+- **What was done:** the split decision was reopened with the author before any code depending on it was written. The plan's colliding-key generator and hash-quality metrics were changed to use slot indices, not group indices.
+- **Lesson:** knowledge of fast-moving libraries goes out of date. A claim about a library's internals needs a version attached, and it should be checked before a decision rests on it.

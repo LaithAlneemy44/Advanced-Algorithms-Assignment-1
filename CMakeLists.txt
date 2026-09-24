@@ -84,9 +84,13 @@ if(SWISS_BUILD_TESTS)
     enable_testing()
 
     add_executable(swiss_tests
-        tests/test_hash.cpp)
+        tests/test_hash.cpp
+        tests/test_hash_candidates.cpp
+        tests/test_keys.cpp)
     target_link_libraries(swiss_tests PRIVATE
         swiss::swiss_table swiss_warnings GTest::gtest_main)
+    # The key generators live with the benchmarks but are tested here.
+    target_include_directories(swiss_tests PRIVATE bench)
 
     if(SWISS_SANITIZE)
         if(MINGW)
@@ -114,4 +118,11 @@ if(SWISS_BUILD_BENCHMARKS)
         bench/bench_hash.cpp)
     target_link_libraries(swiss_bench PRIVATE
         swiss::swiss_table swiss_warnings benchmark::benchmark_main)
+
+    # Hash-level quality analysis. Deterministic counts, not timings, so it
+    # needs no benchmark library.
+    add_executable(swiss_hash_quality
+        bench/hash_quality.cpp)
+    target_link_libraries(swiss_hash_quality PRIVATE
+        swiss::swiss_table swiss_warnings)
 endif()

@@ -39,40 +39,13 @@ constexpr KnownAnswer kKnownAnswers[] = {
 static_assert(splitmix64_mix(0) == 0);
 static_assert(splitmix64_mix(1) == 0x5692161D100B05E5ULL);
 
-// Inverse of y = x ^ (x >> s). The step leaves the top s bits of x unchanged,
-// so they can be read straight from y. Each iteration then recovers the next s
-// bits below the ones already known.
-constexpr std::uint64_t unxorshift(std::uint64_t y, int s) {
-    std::uint64_t x = y;
-    for (int known = s; known < 64; known += s) {
-        x = y ^ (x >> s);
-    }
-    return x;
-}
+using swiss::splitmix64_unmix;
+using swiss::detail::inverse_mod_2_64;
+using swiss::detail::kSplitMixMul1;
+using swiss::detail::kSplitMixMul2;
 
-// Inverse of an odd constant mod 2^64 by Newton's iteration. Starting from
-// inv = c is correct to 3 bits, since c * c == 1 mod 8 for any odd c. Each step
-// doubles the number of correct bits: 3, 6, 12, 24, 48, 96.
-constexpr std::uint64_t inverse_mod_2_64(std::uint64_t c) {
-    std::uint64_t inv = c;
-    for (int i = 0; i < 5; ++i) {
-        inv *= 2 - c * inv;
-    }
-    return inv;
-}
-
-constexpr std::uint64_t kMul1 = 0xBF58476D1CE4E5B9ULL;
-constexpr std::uint64_t kMul2 = 0x94D049BB133111EBULL;
-static_assert(kMul1 * inverse_mod_2_64(kMul1) == 1);
-static_assert(kMul2 * inverse_mod_2_64(kMul2) == 1);
-
-// Undo the three steps of splitmix64_mix in reverse order.
-constexpr std::uint64_t splitmix64_unmix(std::uint64_t z) {
-    z = unxorshift(z, 31);
-    z = unxorshift(z * inverse_mod_2_64(kMul2), 27);
-    z = unxorshift(z * inverse_mod_2_64(kMul1), 30);
-    return z;
-}
+static_assert(kSplitMixMul1 * inverse_mod_2_64(kSplitMixMul1) == 1);
+static_assert(kSplitMixMul2 * inverse_mod_2_64(kSplitMixMul2) == 1);
 
 TEST(SplitMix64, MatchesReferenceImplementation) {
     for (const auto& [in, out] : kKnownAnswers) {
@@ -99,6 +72,14 @@ TEST(SplitMix64Hash, AgreesWithMix) {
     for (const auto& [in, out] : kKnownAnswers) {
         EXPECT_EQ(hash(in), out);
     }
+}
+
+TEST(Split, TakesTopSevenBitsForH2AndMaskedHashForH1) {
+    constexpr std::size_t hash = 0xFEDCBA9876543210ULL;
+    static_assert(swiss::h2(hash) == 0x7F);  // 0xFE >> 1
+    static_assert(swiss::h1(hash, 0xFFF) == 0x210);
+    static_assert(swiss::h2(0x01FFFFFFFFFFFFFFULL) == 0);  // bits below 57 never reach H2
+    SUCCEED();
 }
 
 // If the hasher could throw, libstdc++'s std::unordered_map would store the

@@ -34,3 +34,11 @@ Record of mistakes by any AI tool, corrections and rejected suggestions. Appende
 - **How it was found:** the verification step written into the plan. It read `raw_hash_set.h` at Abseil master and at eight release tags, plus hashbrown's `src/control/tag.rs` and `src/raw.rs`. The Abseil commit that made the change explains it: "change H2 to use the most significant 7 bits - saving 1 cycle in H1. Using Mix instead of WeakMix means that the entire 64 bits of hash are expected to have good entropy."
 - **What was done:** the split decision was reopened with the author before any code depending on it was written. The plan's colliding-key generator and hash-quality metrics were changed to use slot indices, not group indices.
 - **Lesson:** knowledge of fast-moving libraries goes out of date. A claim about a library's internals needs a version attached, and it should be checked before a decision rests on it.
+
+## 2026-09-24: Wrong high-confidence prediction about multiplicative hashing
+
+- **Asked:** draft hypotheses for the hash-quality experiment before any measurement.
+- **What went wrong:** Claude predicted, at high confidence, that the multiplicative hash's top bits, the H2 bits, would show low avalanche bias. The measured mean bias was 0.26 to 0.28, far from the 0 expected of a good hash. The reasoning error: "the top bits depend on every input bit" was treated as "the top bits respond randomly". Flipping input bit i adds the fixed constant 2^i·C to the product, so each output bit flips with a fixed probability, not a probability of 1/2. Averaged over input bits, that gives a bias of about 0.25.
+- **How it was found:** the first run of `swiss_hash_quality`, checked against the hypotheses committed beforehand in `17ffa96`.
+- **What was done:** the committed hypothesis was left unchanged. The divergence and its explanation are in `experiments/hash-quality-results.md`, finding 5. Two lower-confidence predictions also missed, about folded multiply and tabulation's worst avalanche cell. Those are recorded there as ordinary experimental outcomes.
+- **Lesson:** "depends on" is not the same as "is mixed by". Committing hypotheses before measuring is what made this error visible rather than quietly rewritten.

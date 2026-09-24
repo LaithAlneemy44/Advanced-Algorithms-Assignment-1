@@ -44,7 +44,7 @@ The finaliser is a bijection on 64-bit values, so distinct keys never share a fu
 
 **H1/H2 split: top 7 bits,** as in current Abseil, since release 20250814, and hashbrown. H2 is bits 57 to 63. H1 is the whole hash, masked to the capacity, and names the slot where probing starts. With a hash that is good in every bit, the choice of bits makes no difference to quality. Taking H2 from the top keeps a shift off the path from hash to the first memory load. Abseil made the same change when it moved to a hash good in all 64 bits.
 
-**Hash-quality experiment.** Compares identity, multiplicative, folded multiply, simple tabulation and splitmix64. Each weak hash is weak in a different, predictable place. Uniform random keys hide those weaknesses, so the experiment uses sequential, strided and adversarial key sets. Hypotheses: [experiments/hash-quality.md](experiments/hash-quality.md).
+**Hash-quality experiment.** Compares identity, multiplicative, folded multiply, simple tabulation and splitmix64. Each weak hash is weak in a different, predictable place. Uniform random keys hide those weaknesses, so the experiment uses sequential, strided and adversarial key sets. Hypotheses: [experiments/hash-quality.md](experiments/hash-quality.md). Phase 1 results, at the hash level before any table exists: [experiments/hash-quality-results.md](experiments/hash-quality-results.md).
 
 ## Environment
 

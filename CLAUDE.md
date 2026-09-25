@@ -7,7 +7,7 @@ Context for Claude Code when working in this repository. Read this before making
 - **What:** An implementation of a Swiss-table hash map, the open-addressing design used by Abseil's `flat_hash_map` and Rust's `hashbrown`.
 - **Why:** Programming Assignment 1 for an Advanced Algorithms subject at UTS. Individual project.
 - **Topic approval:** Swiss table is off the suggested topic list and was approved by the tutor, Troy. The earlier choice was a van Emde Boas tree, now dropped.
-- **Due:** 27 September 2026.
+- **Due:** 30 September 2026.
 - **Secondary goal:** The repo should stand up as a GitHub portfolio piece aimed at quantitative development roles, not just satisfy the marking rubric. Performance awareness, clean benchmarking and clear engineering decisions matter more than feature count.
 
 ## Author
@@ -17,13 +17,22 @@ Context for Claude Code when working in this repository. Read this before making
 - Prefers abstract technical work such as algorithms, maths and low-level systems.
 - Works on a **Windows PC** for this project. Previous C++ setup used VS Code with MSYS2, so assume GCC via MSYS2 unless told otherwise. Commands and scripts must work on Windows.
 
+## Decisions
+
+Confirmed by the author. The project plan, with milestones M1 to M5 and cut lines, lives in the Claude plan file for this project.
+
+- **Track A:** an empirical study against baselines.
+- **Language and toolchain:** C++20, MinGW GCC 16.2 via MSYS2, CMake and Ninja.
+- **Interface:** a map from `uint64_t` to `uint64_t` with fixed types, templated only on the hash and, for the Swiss table, on the group implementation. A documented simplification.
+- **Build order, bottom-up:** R0 linear probing, then R1 control bytes with scalar compare, then R2 the SSE2 Swiss table. Each step is benchmarked, so the differences measure each feature's contribution.
+- **Baselines:** `std::unordered_map` and `boost::unordered_flat_map`, both given `SplitMix64Hash`. Abseil is not planned.
+- **Shared hash:** `SplitMix64Hash` for every structure. Hash quality is varied only in its own experiment.
+
 ## Open decisions
 
-These have not been confirmed. Ask rather than assume if a task depends on them.
+Ask rather than assume if a task depends on them.
 
-- **Track.** A Swiss table fits Track A best, an empirical study against baselines. Track C is possible if the focus shifts to correctness of probing, deletion and resizing.
-- **Language.** C++ is the likely choice given the CP background and the quant target. Not yet confirmed.
-- **Baselines.** Likely `std::unordered_map`, plus possibly a simple linear-probing table and `absl::flat_hash_map` as a reference point.
+- **Group alignment for R1/R2, to confirm at the start of M2.** Recommended: aligned groups, so the deletion rule is "write EMPTY only if the group still holds an EMPTY". Abseil and hashbrown instead start probing at any slot, with cloned control bytes.
 
 ## Assignment requirements
 

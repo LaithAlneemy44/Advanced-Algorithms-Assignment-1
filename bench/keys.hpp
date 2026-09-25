@@ -1,6 +1,7 @@
 #pragma once
 
 #include <swiss/hash.hpp>
+#include <swiss/map_interface.hpp>
 
 #include <bit>
 #include <cstddef>
@@ -10,9 +11,12 @@
 #include <unordered_set>
 #include <vector>
 
-// Key sets for the hash-quality experiment. Uniform random keys hide hash
-// quality: they are already well spread, so even the identity hash does well on
-// them. The structured sets are the ones that expose weak bits.
+// Key sets for the tests and benchmarks. Uniform random keys hide hash quality:
+// they are already well spread, so even the identity hash does well on them.
+// The structured sets are the ones that expose weak bits.
+//
+// No set ever contains a reserved key (swiss::is_reserved_key), so every table
+// sees the same keys.
 namespace swiss::keys {
 
 // Distinct uniform random 64-bit keys. Duplicates are skipped, so a table built
@@ -24,7 +28,7 @@ inline std::vector<std::uint64_t> uniform(std::size_t n, std::uint64_t seed) {
     keys.reserve(n);
     while (keys.size() < n) {
         const std::uint64_t key = rng();
-        if (seen.insert(key).second) {
+        if (!is_reserved_key(key) && seen.insert(key).second) {
             keys.push_back(key);
         }
     }
@@ -63,7 +67,8 @@ inline std::vector<std::uint64_t> colliding(std::size_t n, std::size_t capacity,
     }
     const int slot_bits = std::countr_zero(capacity);
     const int counter_bits = 57 - slot_bits;  // the bits between H1's and H2's
-    if (counter_bits < 64 && n > (std::uint64_t{1} << counter_bits)) {
+    // + 2: at most two counter values are skipped, one per reserved key.
+    if (counter_bits < 64 && n + 2 > (std::uint64_t{1} << counter_bits)) {
         throw std::invalid_argument("too many keys for the free hash bits");
     }
 
@@ -71,10 +76,14 @@ inline std::vector<std::uint64_t> colliding(std::size_t n, std::size_t capacity,
     const std::uint64_t shared_h2 = rng() & 0x7F;
     const std::uint64_t shared_slot = rng() & (capacity - 1);
 
-    std::vector<std::uint64_t> keys(n);
-    for (std::uint64_t i = 0; i < n; ++i) {
+    std::vector<std::uint64_t> keys;
+    keys.reserve(n);
+    for (std::uint64_t i = 0; keys.size() < n; ++i) {
         const std::uint64_t hash = (shared_h2 << 57) | (i << slot_bits) | shared_slot;
-        keys[i] = splitmix64_unmix(hash);
+        const std::uint64_t key = splitmix64_unmix(hash);
+        if (!is_reserved_key(key)) {
+            keys.push_back(key);
+        }
     }
     return keys;
 }

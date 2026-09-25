@@ -2,7 +2,7 @@
 
 A Swiss-table hash map in C++20, the open-addressing design behind Abseil's `flat_hash_map` and Rust's `hashbrown`, benchmarked against baseline hash maps. Programming Assignment 1 for Advanced Algorithms at UTS.
 
-**Status:** in progress. The build, the shared hash function, the hash-quality experiment's hash-level phase and their tests are in place. The table itself is not written yet.
+**Status:** in progress. Built bottom-up in three steps: R0 linear probing, R1 control bytes with scalar compare, R2 the SSE2 Swiss table. Done so far: the shared hash, the hash-level phase of the hash-quality experiment, R0, the shared test suite and the benchmark harness. R1 and R2 are next.
 
 ## Build, test, benchmark
 
@@ -12,27 +12,39 @@ Requires CMake 3.24 or later, Ninja and a C++20 compiler. GoogleTest and Google 
 cmake -S . -B build -G Ninja
 cmake --build build
 ctest --test-dir build --output-on-failure
-./build/swiss_bench
-./build/swiss_hash_quality results/hash_quality
+./build/swiss_bench_maps --benchmark_repetitions=5 --benchmark_report_aggregates_only=true --benchmark_out=results/maps/run.json
 ```
 
-With no build type given, the build defaults to Release.
+Other tools:
+
+```
+./build/swiss_bench                                   # cost of each hash on its own
+./build/swiss_hash_quality results/hash_quality       # hash-level quality analysis
+python tools/strip_bench_json.py results/maps/run.json          # remove host name and user path before committing
+uv run --with matplotlib python tools/plot.py results/maps/run.json results/maps/plots
+```
+
+With no build type given, the build defaults to Release. Tests keep their `assert()`s in every build type.
 
 | CMake option | Default | Effect |
 |---|---|---|
 | `SWISS_BUILD_TESTS` | `ON` | Build `swiss_tests` |
-| `SWISS_BUILD_BENCHMARKS` | `ON` | Build `swiss_bench` and `swiss_hash_quality` |
-| `SWISS_SANITIZE` | `OFF` | Sanitisers for the tests. AddressSanitizer and UBSan where available. On MinGW, UBSan in trap mode only. |
+| `SWISS_BUILD_BENCHMARKS` | `ON` | Build `swiss_bench_maps`, `swiss_bench` and `swiss_hash_quality` |
+| `SWISS_SANITIZE` | `OFF` | Sanitisers for the tests. AddressSanitizer and UBSan where available. On MinGW, UBSan in trap mode only, plus libstdc++ bounds checks. |
 | `SWISS_NATIVE` | `OFF` | Add `-march=native`. Off by default so results do not depend on one CPU's instruction set. |
 
 ## Layout
 
 | Path | Contents |
 |---|---|
+| `include/swiss/map_interface.hpp` | The `Map` concept every table satisfies, and the reserved keys |
+| `include/swiss/growth.hpp` | Load limit and resize rule, shared by R0, R1 and R2 |
+| `include/swiss/linear_probing_map.hpp` | R0: linear probing, keys stored directly, tombstones on erase |
 | `include/swiss/hash.hpp` | `SplitMix64Hash`, the one hash used by every structure. Its inverse. The H1/H2 split. |
 | `include/swiss/hash_candidates.hpp` | The other hashes compared in the hash-quality experiment |
-| `tests/` | GoogleTest unit tests |
-| `bench/` | Google Benchmark benchmarks, key generators, the hash-quality analysis tool |
+| `tests/` | GoogleTest unit tests. `test_maps.cpp` runs one suite over every table. |
+| `bench/` | Benchmarks, key generators, baseline adapters, the hash-quality analysis tool |
+| `tools/` | Plotting, and stripping private fields from benchmark JSON |
 | `experiments/` | Hypotheses, written and committed before each experiment runs |
 | `ai-failures.md` | Log of AI mistakes and corrections, kept as they happen |
 

@@ -86,11 +86,16 @@ if(SWISS_BUILD_TESTS)
     add_executable(swiss_tests
         tests/test_hash.cpp
         tests/test_hash_candidates.cpp
-        tests/test_keys.cpp)
+        tests/test_keys.cpp
+        tests/test_maps.cpp)
     target_link_libraries(swiss_tests PRIVATE
         swiss::swiss_table swiss_warnings GTest::gtest_main)
-    # The key generators live with the benchmarks but are tested here.
+    # The key generators and baseline adapters live with the benchmarks but are
+    # tested here.
     target_include_directories(swiss_tests PRIVATE bench)
+    # Tests keep their assert()s even in a Release build. -UNDEBUG comes after
+    # the build type's -DNDEBUG on the command line, so it wins.
+    target_compile_options(swiss_tests PRIVATE -UNDEBUG)
 
     if(SWISS_SANITIZE)
         if(MINGW)
@@ -103,6 +108,9 @@ if(SWISS_BUILD_TESTS)
         endif()
         target_compile_options(swiss_tests PRIVATE ${SWISS_SAN_FLAGS})
         target_link_options(swiss_tests PRIVATE ${SWISS_SAN_FLAGS})
+        # Bounds-checks std::vector::operator[] and similar in libstdc++. A
+        # partial stand-in for AddressSanitizer where it is unavailable.
+        target_compile_definitions(swiss_tests PRIVATE _GLIBCXX_ASSERTIONS)
     endif()
 
     include(GoogleTest)
@@ -118,6 +126,13 @@ if(SWISS_BUILD_BENCHMARKS)
         bench/bench_hash.cpp)
     target_link_libraries(swiss_bench PRIVATE
         swiss::swiss_table swiss_warnings benchmark::benchmark_main)
+
+    # Every table on every workload. Registers its benchmarks at run time, so it
+    # has its own main().
+    add_executable(swiss_bench_maps
+        bench/bench_maps.cpp)
+    target_link_libraries(swiss_bench_maps PRIVATE
+        swiss::swiss_table swiss_warnings benchmark::benchmark)
 
     # Hash-level quality analysis. Deterministic counts, not timings, so it
     # needs no benchmark library.
